@@ -420,17 +420,14 @@ protected:
           yaw_escape_remain = yaw_escape_;
           has_collision_at_now_ = true;
         }
-        if (d_escape_remain <= 0 || yaw_escape_remain <= 0)
+        if (has_collision_at_now_)
         {
-          if (has_collision_at_now_)
-          {
-            // It's not possible to escape from collision; stop completely.
-            d_col = yaw_col = 0;
-          }
-
-          has_collision = true;
-          break;
+          // It's not possible to escape from collision; stop completely.
+          d_col = yaw_col = 0;
         }
+
+        has_collision = true;
+        break;
       }
     }
     pub_debug_.publish(debug_points);
