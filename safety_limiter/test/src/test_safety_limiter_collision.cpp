@@ -153,14 +153,15 @@ public:
   }
 };
 
-TEST_F(SafetyLimiterCollisionTest, StraitMotion)
+TEST_F(SafetyLimiterCollisionTest, StraightMotion)
 {
   ros::Rate wait(20.0);
+  constexpr float target_position_x = 0.5;
 
   // Skip initial state
   for (size_t i = 0; i < 10 && ros::ok(); ++i)
   {
-    publishSinglePointPointcloud2(0.5, 0, 0, "odom", ros::Time::now());
+    publishSinglePointPointcloud2(target_position_x, 0, 0, "odom", ros::Time::now());
     publishWatchdogReset();
 
     wait.sleep();
@@ -169,16 +170,12 @@ TEST_F(SafetyLimiterCollisionTest, StraitMotion)
 
   for (float vel = 0.0; vel < 1.0; vel += 0.1)
   {
-    bool en = false;
-
-    // 1.0 m/ss, obstacle at 0.5 m: robot must not collide to the point
+    // 1.0 m/ss, obstacle at 0.5 m: robot will 'touch' to the point
     for (size_t i = 0; i < 10 && ros::ok(); ++i)
     {
       publishTransform();
 
-      if (i > 5)
-        en = true;
-      publishSinglePointPointcloud2(0.5, 0, 0, "odom", ros::Time::now());
+      publishSinglePointPointcloud2(target_position_x, 0, 0, "odom", ros::Time::now());
       publishWatchdogReset();
       publishTwist(vel, 0.0);
 
@@ -188,7 +185,7 @@ TEST_F(SafetyLimiterCollisionTest, StraitMotion)
   }
 
   ASSERT_NEAR(yaw_, 0.0, 1e-2);
-  ASSERT_LT(pos_[0], 0.5);
+  ASSERT_LT(pos_[0], target_position_x);
   ASSERT_NEAR(pos_[1], 0.0, 1e-2);
 }
 
