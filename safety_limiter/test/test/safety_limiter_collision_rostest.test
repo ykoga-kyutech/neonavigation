@@ -9,7 +9,7 @@
     <param name="allow_empty_cloud" value="false" />
     <param name="watchdog_interval" value="0.2" />
     <param name="cloud_timeout" value="0.2" />
-    <param name="hz" value="10.0" />
+    <param name="freq" value="20.0" />
     <param name="dt" value="0.01" />
     <param name="lin_acc" value="1.0" />
     <param name="lin_vel" value="2.0" />
