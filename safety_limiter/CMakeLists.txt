@@ -74,6 +74,9 @@ add_definitions(-DPCL_NO_PRECOMPILE)
 add_executable(safety_limiter src/safety_limiter.cpp)
 target_link_libraries(safety_limiter ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
+add_executable(safety_limiter_simple src/safety_limiter_simple.cpp)
+target_link_libraries(safety_limiter_simple ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
 
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
