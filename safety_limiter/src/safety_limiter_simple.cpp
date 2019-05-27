@@ -368,7 +368,7 @@ protected:
       if (colliding)
       {
         if (t == 0.0)
-          d_col = yaw_col = 0.f;
+          d_col = yaw_col = 0.0;
 
         has_collision = true;
         break;
