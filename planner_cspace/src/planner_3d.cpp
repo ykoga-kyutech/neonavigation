@@ -417,6 +417,7 @@ protected:
         return false;
       }
       status_.status = planner_cspace_msgs::PlannerStatus::DOING;
+      status_.header.stamp = ros::Time::now();
       pub_status_.publish(status_);
       diag_updater_.update();
     }
@@ -1499,6 +1500,7 @@ public:
           status_.error = planner_cspace_msgs::PlannerStatus::GOING_WELL;
         publishEmptyPath();
       }
+      status_.header.stamp = ros::Time::now();
       pub_status_.publish(status_);
       diag_updater_.force_update();
     }
