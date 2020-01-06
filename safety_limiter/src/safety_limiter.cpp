@@ -469,11 +469,11 @@ protected:
     d_col = std::max<float>(
         0.0,
         std::abs(d_col) - d_margin_ + acc_dtsq[0] -
-            std::sqrt(std::pow(acc_dtsq[0], 2) + 2 * acc_dtsq[0] * std::abs(d_col)));
+            std::sqrt(std::pow(acc_dtsq[0], 2) + 2 * acc_dtsq[0] * (std::abs(d_col) - d_margin_)));
     yaw_col = std::max<float>(
         0.0,
         std::abs(yaw_col) - yaw_margin_ + acc_dtsq[1] -
-            std::sqrt(std::pow(acc_dtsq[1], 2) + 2 * acc_dtsq[1] * std::abs(yaw_col)));
+            std::sqrt(std::pow(acc_dtsq[1], 2) + 2 * acc_dtsq[1] * (std::abs(yaw_col) - yaw_margin_)));
 
     float d_r =
         std::sqrt(std::abs(2 * acc_[0] * d_col)) / std::abs(twist_.linear.x);
