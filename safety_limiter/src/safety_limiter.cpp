@@ -96,6 +96,8 @@ protected:
   ros::NodeHandle pnh_;
   ros::Publisher pub_twist_;
   ros::Publisher pub_cloud_;
+  ros::Publisher pub_center_;
+  ros::Publisher pub_downsampled_;
   ros::Publisher pub_status_;
   ros::Subscriber sub_twist_;
   std::vector<ros::Subscriber> sub_clouds_;
@@ -162,6 +164,8 @@ public:
         nh_, "cmd_vel",
         pnh_, "cmd_vel_out", 1, true);
     pub_cloud_ = nh_.advertise<sensor_msgs::PointCloud>("collision", 1, true);
+    pub_center_ = pnh_.advertise<sensor_msgs::PointCloud>("center", 1);
+    pub_downsampled_ = pnh_.advertise<sensor_msgs::PointCloud2>("downsampled_cloud", 1);
     pub_status_ = pnh_.advertise<safety_limiter_msgs::SafetyLimiterStatus>("status", 1, true);
     sub_twist_ = neonavigation_common::compat::subscribe(
         nh_, "cmd_vel_in",
@@ -383,6 +387,10 @@ protected:
       return 0.0;
     }
 
+    sensor_msgs::PointCloud2 downsampled;
+    pcl::toROSMsg(*pc, downsampled);
+    pub_downsampled_.publish(downsampled);
+
     pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
     kdtree.setInputCloud(pc);
 
@@ -399,6 +407,9 @@ protected:
     sensor_msgs::PointCloud col_points;
     col_points.header.frame_id = base_frame_id_;
     col_points.header.stamp = ros::Time::now();
+    sensor_msgs::PointCloud center_points;
+    center_points.header.frame_id = base_frame_id_;
+    center_points.header.stamp = ros::Time::now();
 
     float d_col = 0;
     float yaw_col = 0;
@@ -421,6 +432,12 @@ protected:
 
       pcl::PointXYZ center;
       center = pcl::transformPoint(center, move_inv);
+
+      geometry_msgs::Point32 c;
+      c.x = center.x;
+      c.y = center.y;
+      c.z = center.z;
+      center_points.points.push_back(c);
 
       std::vector<int> indices;
       std::vector<float> dist;
@@ -469,6 +486,7 @@ protected:
       }
     }
 
+    pub_center_.publish(center_points);
     pub_cloud_.publish(col_points);
 
     if (has_collision_at_now_)
