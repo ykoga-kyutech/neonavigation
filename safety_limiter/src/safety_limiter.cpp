@@ -109,7 +109,7 @@ protected:
 
   geometry_msgs::Twist twist_;
   ros::Time last_cloud_stamp_;
-  pcl::PointCloud<pcl::PointXYZ>::Ptr pc_local_accum_;
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_accum_;
   bool cloud_clear_;
   double hz_;
   double timeout_;
@@ -150,7 +150,7 @@ public:
     : nh_()
     , pnh_("~")
     , tfl_(tfbuf_)
-    , pc_local_accum_(new pcl::PointCloud<pcl::PointXYZ>)
+    , cloud_accum_(new pcl::PointCloud<pcl::PointXYZ>)
     , cloud_clear_(false)
     , last_disable_cmd_(0)
     , watchdog_stop_(false)
@@ -312,7 +312,7 @@ protected:
       geometry_msgs::Twist cmd_vel;
       pub_twist_.publish(cmd_vel);
 
-      pc_local_accum_.reset(new pcl::PointCloud<pcl::PointXYZ>);
+      cloud_accum_.reset(new pcl::PointCloud<pcl::PointXYZ>);
       has_cloud_ = false;
       r_lim_ = 0;
 
@@ -337,33 +337,34 @@ protected:
   {
     try
     {
-      geometry_msgs::TransformStamped trans = tfbuf_.lookupTransform(
+      geometry_msgs::TransformStamped odom_to_base = tfbuf_.lookupTransform(
           base_frame_id_,
-          pc_local_accum_->header.frame_id,
-          pcl_conversions::fromPCL(pc_local_accum_->header.stamp), ros::Duration(0.1));
+          cloud_accum_->header.frame_id,
+          pcl_conversions::fromPCL(cloud_accum_->header.stamp),
+          ros::Duration(0.1));
 
-      const Eigen::Affine3f trans_eigen =
+      const Eigen::Affine3f odom_to_base_eigen =
           Eigen::Translation3f(
-              trans.transform.translation.x,
-              trans.transform.translation.y,
-              trans.transform.translation.z) *
+              odom_to_base.transform.translation.x,
+              odom_to_base.transform.translation.y,
+              odom_to_base.transform.translation.z) *
           Eigen::Quaternionf(
-              trans.transform.rotation.w,
-              trans.transform.rotation.x,
-              trans.transform.rotation.y,
-              trans.transform.rotation.z);
-      pcl::transformPointCloud(*pc_local_accum_, *pc_local_accum_, trans_eigen);
+              odom_to_base.transform.rotation.w,
+              odom_to_base.transform.rotation.x,
+              odom_to_base.transform.rotation.y,
+              odom_to_base.transform.rotation.z);
+      pcl::transformPointCloud(*cloud_accum_, *cloud_accum_, odom_to_base_eigen);
     }
     catch (tf2::TransformException& e)
     {
       ROS_WARN_THROTTLE(1.0, "safety_limiter: Transform failed: %s", e.what());
-      pc_local_accum_.reset(new pcl::PointCloud<pcl::PointXYZ>);
+      cloud_accum_.reset(new pcl::PointCloud<pcl::PointXYZ>);
       return 0.0;
     }
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr pc(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::VoxelGrid<pcl::PointXYZ> ds;
-    ds.setInputCloud(pc_local_accum_);
+    ds.setInputCloud(cloud_accum_);
     ds.setLeafSize(downsample_grid_, downsample_grid_, downsample_grid_);
     ds.filter(*pc);
 
@@ -687,32 +688,32 @@ protected:
   }
   void cbCloud(const sensor_msgs::PointCloud2::ConstPtr& msg)
   {
-    sensor_msgs::PointCloud2 pc2_tmp;
+    sensor_msgs::PointCloud2 cloud_odom_msg;
 
     try
     {
-      geometry_msgs::TransformStamped trans = tfbuf_.lookupTransform(
+      geometry_msgs::TransformStamped cloud_to_odom = tfbuf_.lookupTransform(
           odom_frame_id_, msg->header.frame_id, msg->header.stamp, ros::Duration(0.1));
-      tf2::doTransform(*msg, pc2_tmp, trans);
+      tf2::doTransform(*msg, cloud_odom_msg, cloud_to_odom);
     }
     catch (tf2::TransformException& e)
     {
       ROS_WARN_THROTTLE(1.0, "safety_limiter: Transform failed: %s", e.what());
-      pc_local_accum_.reset(new pcl::PointCloud<pcl::PointXYZ>);
+      cloud_accum_.reset(new pcl::PointCloud<pcl::PointXYZ>);
       return;
     }
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr pc(new pcl::PointCloud<pcl::PointXYZ>());
-    pc->header.frame_id = odom_frame_id_;
-    pcl::fromROSMsg(pc2_tmp, *pc);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_odom(new pcl::PointCloud<pcl::PointXYZ>());
+    cloud_odom->header.frame_id = odom_frame_id_;
+    pcl::fromROSMsg(cloud_odom_msg, *cloud_odom);
 
     if (cloud_clear_)
     {
       cloud_clear_ = false;
-      pc_local_accum_.reset(new pcl::PointCloud<pcl::PointXYZ>);
+      cloud_accum_.reset(new pcl::PointCloud<pcl::PointXYZ>);
     }
-    *pc_local_accum_ += *pc;
-    pc_local_accum_->header.frame_id = odom_frame_id_;
+    *cloud_accum_ += *cloud_odom;
+    cloud_accum_->header.frame_id = odom_frame_id_;
     last_cloud_stamp_ = msg->header.stamp;
     has_cloud_ = true;
   }
