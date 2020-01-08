@@ -335,6 +335,16 @@ protected:
   }
   double predict(const geometry_msgs::Twist& in)
   {
+    if (cloud_accum_->size() == 0)
+    {
+      if (allow_empty_cloud_)
+      {
+        return 1.0;
+      }
+      ROS_WARN_THROTTLE(1.0, "safety_limiter: Empty pointcloud passed.");
+      return 0.0;
+    }
+
     try
     {
       geometry_msgs::TransformStamped odom_to_base = tfbuf_.lookupTransform(
@@ -358,7 +368,6 @@ protected:
     catch (tf2::TransformException& e)
     {
       ROS_WARN_THROTTLE(1.0, "safety_limiter: Transform failed: %s", e.what());
-      cloud_accum_.reset(new pcl::PointCloud<pcl::PointXYZ>);
       return 0.0;
     }
 
@@ -700,7 +709,6 @@ protected:
     catch (tf2::TransformException& e)
     {
       ROS_WARN_THROTTLE(1.0, "safety_limiter: Transform failed: %s", e.what());
-      cloud_accum_.reset(new pcl::PointCloud<pcl::PointXYZ>);
       return;
     }
 
