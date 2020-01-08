@@ -390,6 +390,7 @@ protected:
 
     sensor_msgs::PointCloud2 downsampled;
     pcl::toROSMsg(*pc, downsampled);
+    downsampled.header.frame_id = base_frame_id_;
     pub_downsampled_.publish(downsampled);
 
     pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
